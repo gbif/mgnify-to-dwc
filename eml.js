@@ -18,9 +18,9 @@ const createEML = (study, pipeline, publications) => {
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.1/eml.xsd"
     packageId="84d26682-f762-11e1-a439-00145eb45e9a/v9.3" system="http://gbif.org" scope="system"
-    xml:lang="eng">
+    xml:lang="en">
 <dataset>
-<title xml:lang="eng">${study["study-name"]}</title>
+<title xml:lang="en">${study["study-name"]}</title>
 
 <creator>
 <organizationName>${institution.organizationName}</organizationName>
