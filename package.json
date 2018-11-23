@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "archiver": "^3.0.0",
+    "csv-write-stream": "^2.0.0",
+    "del": "^3.0.0",
+    "eslint": "^5.9.0",
+    "eslint-config-google": "^0.11.0",
+    "lodash": "^4.17.11",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.2"
+  }
+}
