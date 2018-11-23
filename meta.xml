@@ -21,7 +21,7 @@
       <location>occurrence.txt</location>
     </files>
     <coreid index="0" />
-<field index="1" term="http://rs.tdwg.org/dwc/terms/occurrenceId"/>
+<field index="1" term="http://rs.tdwg.org/dwc/terms/occurrenceID"/>
   <field index="2" term="http://rs.tdwg.org/dwc/terms/kingdom"/>
   <field index="3" term="http://rs.tdwg.org/dwc/terms/phylum"/>
    <field index="4" term="http://rs.tdwg.org/dwc/terms/class"/>
@@ -35,6 +35,7 @@
     <field index="12" term="http://rs.tdwg.org/dwc/terms/basisOfRecord"/>
  <field index="13" term="http://rs.tdwg.org/dwc/terms/identificationReferences"/>
  <field index="14" term="http://rs.tdwg.org/dwc/terms/identificationRemarks"/>
+ <field index="15" term="http://rs.tdwg.org/dwc/terms/eventID"/>
   </extension>
 
 </archive>
