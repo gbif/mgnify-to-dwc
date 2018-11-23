@@ -230,7 +230,7 @@ const writeOccurrencePageFromApi = (data, eventID, occurrenceWriter, subunit, pi
   data.data.forEach(row => {
     const line = [
       eventID,
-      `${eventID}_${_.get(row, "id")}`,
+      `${eventID}_${subunit}_${_.get(row, "id")}`,
       _.get(row, "attributes.hierarchy.kingdom") || "",
       _.get(row, "attributes.hierarchy.phylum") || "",
       _.get(row, "attributes.hierarchy.class") || "",
