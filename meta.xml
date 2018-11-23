@@ -21,21 +21,22 @@
       <location>occurrence.txt</location>
     </files>
     <coreid index="0" />
-<field index="1" term="http://rs.tdwg.org/dwc/terms/occurrenceID"/>
-  <field index="2" term="http://rs.tdwg.org/dwc/terms/kingdom"/>
-  <field index="3" term="http://rs.tdwg.org/dwc/terms/phylum"/>
-   <field index="4" term="http://rs.tdwg.org/dwc/terms/class"/>
-   <field index="5" term="http://rs.tdwg.org/dwc/terms/order"/>
-   <field index="6" term="http://rs.tdwg.org/dwc/terms/family"/>
-   <field index="7" term="http://rs.tdwg.org/dwc/terms/genus"/>
-   <field index="8" term="http://rs.tdwg.org/dwc/terms/scientificName"/>
-   <field index="9" term="http://rs.tdwg.org/dwc/terms/rank"/>
-    <field index="10" term="http://rs.tdwg.org/dwc/terms/organismQuantity"/>
-    <field index="11" term="http://rs.tdwg.org/dwc/terms/organismQuantityType"/>
-    <field index="12" term="http://rs.tdwg.org/dwc/terms/basisOfRecord"/>
- <field index="13" term="http://rs.tdwg.org/dwc/terms/identificationReferences"/>
- <field index="14" term="http://rs.tdwg.org/dwc/terms/identificationRemarks"/>
- <field index="15" term="http://rs.tdwg.org/dwc/terms/eventID"/>
+    <field index="1" term="http://rs.tdwg.org/dwc/terms/eventID"/>
+<field index="2" term="http://rs.tdwg.org/dwc/terms/occurrenceID"/>
+  <field index="3" term="http://rs.tdwg.org/dwc/terms/kingdom"/>
+  <field index="4" term="http://rs.tdwg.org/dwc/terms/phylum"/>
+   <field index="5" term="http://rs.tdwg.org/dwc/terms/class"/>
+   <field index="6" term="http://rs.tdwg.org/dwc/terms/order"/>
+   <field index="7" term="http://rs.tdwg.org/dwc/terms/family"/>
+   <field index="8" term="http://rs.tdwg.org/dwc/terms/genus"/>
+   <field index="9" term="http://rs.tdwg.org/dwc/terms/scientificName"/>
+   <field index="10" term="http://rs.tdwg.org/dwc/terms/rank"/>
+    <field index="11" term="http://rs.tdwg.org/dwc/terms/organismQuantity"/>
+    <field index="12" term="http://rs.tdwg.org/dwc/terms/organismQuantityType"/>
+    <field index="13" term="http://rs.tdwg.org/dwc/terms/basisOfRecord"/>
+ <field index="14" term="http://rs.tdwg.org/dwc/terms/identificationReferences"/>
+ <field index="15" term="http://rs.tdwg.org/dwc/terms/identificationRemarks"/>
+ 
   </extension>
 
 </archive>

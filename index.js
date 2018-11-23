@@ -23,6 +23,7 @@ const writeStudyAsDataset = async (studyId, pipeline) => {
     separator: "\t",
     newline: "\n",
     headers: [
+      "coreID",
       "eventID",
       "occurrenceId",
       "kingdom",
@@ -37,8 +38,7 @@ const writeStudyAsDataset = async (studyId, pipeline) => {
       "organismQuantityType",
       "basisOfRecord",
       "identificationReferences",
-      "identificationRemarks",
-      "eventID"
+      "identificationRemarks"
     ],
     sendHeaders: false
   });
@@ -241,6 +241,7 @@ const writeOccurrencePageFromApi = (data, eventID, occurrenceWriter, subunit, pi
   data.data.forEach(row => {
     const line = [
       eventID,
+      eventID,
       `${eventID}_${subunit}_${_.get(row, "id")}`,
       _.get(row, "attributes.hierarchy.kingdom") || "",
       _.get(row, "attributes.hierarchy.phylum") || "",
@@ -254,8 +255,8 @@ const writeOccurrencePageFromApi = (data, eventID, occurrenceWriter, subunit, pi
       "DNA sequence reads",
       "MATERIAL_SAMPLE",
       `https://www.ebi.ac.uk/metagenomics/pipelines/${pipeline}`,
-      `${subunit} rRNA annotated using the taxonomic reference database described here: https://www.ebi.ac.uk/metagenomics/pipelines/${pipeline}`,
-      eventID
+      `${subunit} rRNA annotated using the taxonomic reference database described here: https://www.ebi.ac.uk/metagenomics/pipelines/${pipeline}`
+      
     ];
     occurrenceWriter.write(line);
   });
