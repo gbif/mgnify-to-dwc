@@ -84,12 +84,20 @@ const writeStudyAsDataset = async (studyId, pipeline) => {
     console.log("The EML file was saved!");
   });
 
-  await traverseAnalyses(
-    data.relationships.analyses.links.related,
+  let analysesNextPage = data.relationships.analyses.links.related;
+  const processedSamples = {};
+  while(analysesNextPage !== null){
+  analysesNextPage = await traverseAnalyses(
+    analysesNextPage,
     occurrenceWriter,
     eventWriter,
-    pipeline
+    pipeline,
+    processedSamples
   );
+  console.log("########## "+ analysesNextPage)
+}   
+
+
 
   occurrenceWriter.end();
   eventWriter.end();
@@ -110,22 +118,29 @@ const traverseAnalyses = async (
   uri,
   occurrenceWriter,
   eventWriter,
-  pipeline
+  pipeline,
+  processedSamples
 ) => {
   const analyses = await request({
     uri: uri,
     json: true
   });
 
+  const filteredAnalyses = [];
+   analyses.data.forEach((a) => 
+  { if(a.attributes["pipeline-version"] === pipeline && !processedSamples[a.relationships.sample.data.id]){
+    filteredAnalyses.push(a);
+    processedSamples[a.relationships.sample.data.id] = true;
+  } }
+ )
   // Write the sample events to events.txt
-  const sampleEvents = analyses.data.filter(({ attributes }) => 
-  ( attributes["pipeline-version"] === pipeline )
- ).map(a =>  getSampleEventFromApi(eventWriter, a.relationships.sample.links.related))
+  const sampleEvents = filteredAnalyses.map(a =>  {
+    processedSamples[a.relationships.sample.data.id] = true;
+   return getSampleEventFromApi(eventWriter, a.relationships.sample.links.related)
+  })
 
   // Write occurrences based on SSU taxonomy to occurrences.txt
-  const occurrencesSSU = analyses.data.filter(({ attributes }) => 
-   ( attributes["pipeline-version"] === pipeline )
-  ).map(a => {
+  const occurrencesSSU = filteredAnalyses.map(a => {
     console.log("Write SSU occs " + a.relationships["taxonomy-ssu"].links.related);
     return writeOccurrencesForEvent(
       occurrenceWriter,
@@ -136,9 +151,7 @@ const traverseAnalyses = async (
     );
   })
   // Write occurrences based on LSU taxonomy to occurrences.txt
-  const occurrencesLSU = analyses.data.filter(({ attributes }) => 
-  ( attributes["pipeline-version"] === pipeline )
- ).map(a => {
+  const occurrencesLSU = filteredAnalyses.map(a => {
    console.log("Write LSU occs " + a.relationships["taxonomy-lsu"].links.related);
    return writeOccurrencesForEvent(
      occurrenceWriter,
@@ -150,13 +163,9 @@ const traverseAnalyses = async (
  })
   await Promise.all([...sampleEvents, ...occurrencesSSU, ...occurrencesLSU]);
 
-  if (analyses.links.next) {
-    console.log("Page done, moving to " + analyses.links.next);
-    return traverseAnalyses(analyses.links.next, occurrenceWriter, eventWriter);
-  } else {
-    
-    return "Finshed writing data";
-  }
+  return analyses.links.next;
+
+
 };
 
 const getSampleEventFromApi = async (eventWriter, uri) => {
@@ -181,11 +190,11 @@ const writeSampleEvent = (data, eventWriter) => {
       "",
     _.get(data, "attributes.collection-date") || "",
     _.get(
-      sampleMetadata.find(({ key }) => key === "geographic location (depth)"),
+      sampleMetadata.find(({ key }) => key === "geographic location (depth)" || key === "depth"),
       "value"
     ) || "",
     _.get(
-      sampleMetadata.find(({ key }) => key === "geographic location (depth)"),
+      sampleMetadata.find(({ key }) => key === "geographic location (depth)" || key === "depth"),
       "value"
     ) || "",
     _.get(data, "attributes.latitude") || "",
@@ -195,6 +204,7 @@ const writeSampleEvent = (data, eventWriter) => {
         .filter(
           ({ key }) =>
             key !== "geographic location (depth)" &&
+            key !== "depth" &&
             key !== "marine region" &&
             key !== "protocol label"
         )
