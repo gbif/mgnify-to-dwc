@@ -5,6 +5,7 @@ const eml = require("./eml");
 const _ = require("lodash");
 var archiver = require('archiver');
 const del = require('del');
+const child_process = require("child_process");
 
 const baseUrl = "https://www.ebi.ac.uk/metagenomics/api/v1/";
 
@@ -92,27 +93,18 @@ const writeStudyAsDataset = async (studyId, pipeline) => {
 
   occurrenceWriter.end();
   eventWriter.end();
-
-const fileName =   `${studyId}.zip`
-const fileOutput = fs.createWriteStream(`./data/${fileName}`);
-const archive = archiver('zip');
-
-fileOutput.on('close', function () {
-    console.log(archive.pointer() + ' total bytes');
-    console.log('archiver has been finalized and the output file descriptor has closed.');
-});
-
-archive.pipe(fileOutput);
-archive.glob(`./data/${studyId}/**/*`); //some glob pattern here
-// add as many as you like
-archive.on('error', function(err){
-    throw err;
-});
-archive.finalize();
+try{
+  child_process.execSync(`zip -r ${__dirname}/data/${studyId}.zip *`, {
+    cwd: `${__dirname}/data/${studyId}`
+  });
+} catch(err){
+  console.log(err)
+}
 
 console.log('Cleaning up ....')
 del.sync([`./data/${studyId}/**`])
-console.log('Done')
+console.log('Done') 
+
 };
 const traverseAnalyses = async (
   uri,
