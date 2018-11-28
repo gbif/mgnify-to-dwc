@@ -6,7 +6,7 @@ const _ = require("lodash");
 var archiver = require('archiver');
 const del = require('del');
 const child_process = require("child_process");
-
+const studies = require('./studies')
 const baseUrl = "https://www.ebi.ac.uk/metagenomics/api/v1/";
 
 
@@ -262,4 +262,18 @@ const writeOccurrencePageFromApi = (data, eventID, occurrenceWriter, subunit, pi
   });
 };
 
-writeStudyAsDataset("MGYS00002392", "4.1");
+// write a single study:
+// writeStudyAsDataset("MGYS00002392", "4.1");
+
+const writeAllStudies = async (pipeline) =>{
+  const studylist = await studies.createStudyList(pipeline);
+
+  // Probably do it sequential
+
+  studylist.map(studyID => () => writeStudyAsDataset(studyID, pipeline) ).reduce((promise, fn) => promise.then(fn), Promise.resolve())
+
+
+
+}
+
+writeAllStudies('4.1')

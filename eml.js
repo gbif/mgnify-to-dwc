@@ -1,18 +1,7 @@
-const institutionMap = {
-    GSC: {
-      organizationName: "The French National Sequencing Center (Genoscope)",
-      address: {
-        deliveryPoint: "Le Ponant Building D - 25 rue Leblanc",
-        city: "PARIS - RCS B 775 685 019",
-        postalCode: "75015",
-        country: "FR"
-      },
-      phone: "+33 (0) 1 64 50 20 59"
-    }
-  };
+const institutionMap = require('./institutionEnum')
 
 const createEML = (study, pipeline, publications) => {
-    const institution = institutionMap[study["centre-name"]];
+    const institution = institutionMap[study["centre-name"]] || {organizationName: study["centre-name"], address: {city: "", deliveryPoint: "", postalCode: ""}, phone: ""};
   return `<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1"
     xmlns:dc="http://purl.org/dc/terms/"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -76,7 +65,14 @@ const createEML = (study, pipeline, publications) => {
 </maintenance>
 
  <contact>
- <organizationName>${study["centre-name"]}</organizationName>
+ <organizationName>${institution.organizationName}</organizationName>
+<address>
+    <deliveryPoint>${institution.address.deliveryPoint}</deliveryPoint>
+    <city>${institution.address.city}</city>
+    <postalCode>${institution.address.postalCode}</postalCode>
+    <country>${institution.address.country}</country>
+</address>
+<phone>${institution.phone}</phone>
 
  </contact>
 <methods>
