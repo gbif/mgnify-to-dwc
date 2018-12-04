@@ -99,7 +99,8 @@ const writeStudyAsDataset = async (studyId, pipeline) => {
       eventWriter,
       pipeline,
       processedSamples
-    );
+		);
+		analysesNextPage = null;
     console.log("########## " + analysesNextPage)
   }
 
@@ -143,7 +144,7 @@ const traverseAnalyses = async (
 
   // Write occurrences based on SSU taxonomy to occurrences.txt
   const occurrencesSSU = filteredAnalyses.map(a => {
-    console.log("Write SSU occs " + a.relationships["taxonomy-ssu"].links.related);
+    console.log(a.relationships["taxonomy-ssu"].links.related);
     return writeOccurrencesForEvent(
       occurrenceWriter,
       a.relationships["taxonomy-ssu"].links.related,
@@ -154,7 +155,7 @@ const traverseAnalyses = async (
   })
   // Write occurrences based on LSU taxonomy to occurrences.txt
   const occurrencesLSU = filteredAnalyses.map(a => {
-    console.log("Write LSU occs " + a.relationships["taxonomy-lsu"].links.related);
+    console.log(a.relationships["taxonomy-lsu"].links.related);
     return writeOccurrencesForEvent(
       occurrenceWriter,
       a.relationships["taxonomy-lsu"].links.related,
@@ -211,23 +212,8 @@ const writeSampleEvent = (data, eventWriter) => {
 };
 
 const writeOccurrencesForEvent = async (occurrenceWriter, uri, eventID, subunit, pipeline) => {
-  console.log("Writing occurrences for event: " + eventID)
+  // console.log("Writing occurrences for event: " + eventID)
   const data = await getData(uri);
-  const pages = data.meta.pagination.pages;
-  if (pages > 1) {
-    console.log('=====================');
-    console.log('=====================');
-    console.log('=====================');
-    console.log('=====================');
-    console.log('=====================');
-    console.log('======== occurrences missed ========');
-    console.log('=====================');
-    console.log('=====================');
-    console.log('=====================');
-    console.log('=====================');
-    console.log('=====================');
-  }
-  
   try {
     writeOccurrencePageFromApi(data, eventID, occurrenceWriter, subunit, pipeline);
   } catch (err) {
@@ -289,7 +275,7 @@ async function getData(url) {
 // writeStudyAsDataset("MGYS00002392", "4.1");
 
 const writeAllStudies = async (pipeline) => {
-  const studylist = ['MGYS00002392'];//require(`./studies/${pipeline}.json`);
+  const studylist = ['MGYS00002376'];//require(`./studies/${pipeline}.json`);
 
   // studylist.map(studyID => () => writeStudyAsDataset(studyID, pipeline)).reduce((promise, fn) => promise.then(fn), Promise.resolve())
 
@@ -299,3 +285,4 @@ const writeAllStudies = async (pipeline) => {
 }
 
 writeAllStudies('4.1')
+
