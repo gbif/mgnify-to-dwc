@@ -77,6 +77,7 @@ const writeStudyAsDataset = async (studyId, pipeline) => {
   // get all publications from study so they can be listed as bibliographical referencse on the dataset
   let publications = [];
   if (_.has(data, "relationships.publications.links.related")) {
+    console.log(data.relationships.publications.links.related);
     const pbl = await getData(_.get(data, "relationships.publications.links.related"));
     publications = pbl.data;
   }
@@ -101,7 +102,7 @@ const writeStudyAsDataset = async (studyId, pipeline) => {
       pipeline,
       processedSamples
 		);
-		// analysesNextPage = null;
+		analysesNextPage = null;
     //console.log("########## " + analysesNextPage)
   }
 

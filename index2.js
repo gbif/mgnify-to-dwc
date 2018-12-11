@@ -1,49 +1,58 @@
-const request = require("requestretry");
-const _ = require("lodash");
-const studies = require("./studies/4.1.json");
-const baseUrl = "https://www.ebi.ac.uk/metagenomics/api/v1/";
+const request = require('requestretry');
+const _ = require('lodash');
+const studies = require('./studies/4.1.json');
+const baseUrl = 'https://www.ebi.ac.uk/metagenomics/api/v1';
 
-const getOccurrenceWriter = require('./writers').getOccurrenceWriter;
-
+const getOccurrenceWriter = require('./writers/occurrenceWriter').getOccurrenceWriter;
+const getEventWriter = require('./writers/eventWriter').getEventWriter;
 
 async function getStudy(studyId) {
 	let studyCount = 0;
-	const occurrenceWriter = 1;//getOccurrenceWriter(studyId);
-	let body = await getData(`${baseUrl}studies/${studyId}`);
+	const occurrenceWriter = getOccurrenceWriter(studyId);
+	const eventWriter = getEventWriter(studyId);
+	let studyBody = await getData(`${baseUrl}/studies/${studyId}`);
 
 	// TODO expand and save study
 
 	// For this study, get the related analyses and filter them - currently use only p.4.1 and only consider a sample once (so ignore multiple analyses of the same sample)
 	// this choice can be questioned https://github.com/gbif/mgnify-to-dwc/issues/3
-	let next = _.get(body, "data.relationships.analyses.links.related");
+	let next = _.get(studyBody, 'data.relationships.analyses.links.related');
 	let processesSampleIds = new Set();
 	while (next) {
 		// get the analyses
-		let body = await getData(next);
+		let analysesResultPage = await getData(next);
 		//decide which analyses to keep
-		let data = body.data.filter(
+		let data = analysesResultPage.data.filter(
 			x => {
-				let keep = 
-					(x.id === 'MGYA00199490' || x.id === 'MGYA00199483' )
-					&& _.get(x, "attributes.pipeline-version") === "4.1" 
-					&& !processesSampleIds.has(_.get(x, 'relationships.sample.data.id'));
-				processesSampleIds.add(_.get(x, 'relationships.sample.data.id'));
+				let keep = _.get(x, 'attributes.pipeline-version') === '4.1' && !processesSampleIds.has(_.get(x, 'relationships.sample.data.id'));
+				processesSampleIds.add(_.get(x, 'relationships.sample.data.id'));// save the sample id so that we have a unique list of those.
 				return keep;
 			}
 		);
 		
 		// for the analyses that we keep, then get the counts in parallel assuming that this will never be a huge number
-		let counts = await Promise.all(data.map(analyses => getOccurrencesFromAnalyses(analyses, occurrenceWriter)))
+		let counts = await Promise.all(data.map(analyses => getOccurrencesFromAnalyses(analyses, occurrenceWriter)));
 		
-		console.log(counts);
 		// for book keeping save the number of occurrences that we found
-		studyCount += counts.reduce((acc, curr) => acc + curr, 0)
-		next = _.get(body, "links.next"); // get the next page of analyses
-		console.log(studyCount)
+		studyCount += counts.reduce((acc, curr) => acc + curr, 0);
+		next = _.get(analysesResultPage, 'links.next'); // get the next page of analyses
 	}
-	console.log(studyCount)
-	// occurrenceWriter.end();
+	console.log(studyCount);
+
+	//write samples/events
+	let sampleIds = Array.from(processesSampleIds);
+	await Promise.all(sampleIds.map(sampleId => getSampleEvent(sampleId, eventWriter)));
+
+	occurrenceWriter.end();
 }
+
+/**
+ * Get the sample event and write it to file
+ */
+const getSampleEvent = async (sampleId, eventWriter) => {
+  const { data } = await getData(`${baseUrl}/samples/${sampleId}`);
+  eventWriter.write(data);
+};
 
 /**
  * extract occurrences. Using lsu and ssu. No duplicate testing.
@@ -51,27 +60,21 @@ async function getStudy(studyId) {
 async function getOccurrencesFromAnalyses(analyses, occurrenceWriter) {
 	let lsu = _.get(analyses, 'relationships.taxonomy-lsu.links.related')
 	let ssu = _.get(analyses, 'relationships.taxonomy-ssu.links.related')
-	lsuCount = await getOccurrences(lsu, occurrenceWriter, true);
-	ssuCount = await getOccurrences(ssu, occurrenceWriter, false);
-	console.log(lsu, ssu);
-	console.log(ssuCount, lsuCount);
+	let lsuCount = await getOccurrences(lsu, occurrenceWriter);
+	let ssuCount = await getOccurrences(ssu, occurrenceWriter);
 	return ssuCount + lsuCount;
 }
-async function getOccurrences(url, occurrenceWriter, isLsu) {
+async function getOccurrences(url, occurrenceWriter) {
 	let next = url;
 	let count = 0;
-	let totalCount = 0;
 	while (next) {
 		// get the occurrences
 		let body = await getData(next);
-		// TODO add occurrences from body
-		// occurrenceWriter.write(body.data, {eventID: 'some eventID', subUnit: 'some subunit', pipeline: 'p.4.1'});
+		occurrenceWriter.write(body.data, {eventID: 'some eventID', subUnit: 'some subunit', pipeline: 'p.4.1'});
 		// go to next page
 		next = body.links.next;
 		count += body.data.length;
-		totalCount = _.get(body, "meta.pagination.count");
 	}
-	console.log(url, count);
 	return count;
 }
 
@@ -81,7 +84,7 @@ async function getData(url) {
 		json: true
 	});
 	if (response.statusCode !== 200) {
-		throw new Error("wrong status code");
+		throw new Error('wrong status code');
 	}
 	// console.log(url + ',' + response.body.data.length);
 	return response.body;

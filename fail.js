@@ -16,8 +16,8 @@ async function start() {
 }
 
 async function getOccurrencesFromAnalyses(analyses) {
-	lsuCount = await getOccurrences(analyses.lsu);
-	ssuCount = await getOccurrences(analyses.ssu);
+	let lsuCount = await getOccurrences(analyses.lsu);
+	let ssuCount = await getOccurrences(analyses.ssu);
 	console.log(ssuCount, lsuCount);
 	return ssuCount + lsuCount;
 }
