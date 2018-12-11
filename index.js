@@ -9,6 +9,7 @@ const child_process = require("child_process");
 const studies = require('./studies')
 const baseUrl = "https://www.ebi.ac.uk/metagenomics/api/v1/";
 
+let totalCount = 0;
 /*
 Study = GBIF dataset
 A study has multiple analyses.
@@ -84,9 +85,9 @@ const writeStudyAsDataset = async (studyId, pipeline) => {
   const emlData = eml.createEML(data.attributes, pipeline, publications);
   fs.writeFile(`./data/${studyId}/eml.xml`, emlData, function (err) {
     if (err) {
-      return console.log(err);
+      return //console.log(err);
     }
-    console.log("The EML file was saved!");
+    //console.log("The EML file was saved!");
   });
 
   // iterate all analyses for the study. An analyses ≈ a GBIF event
@@ -100,8 +101,8 @@ const writeStudyAsDataset = async (studyId, pipeline) => {
       pipeline,
       processedSamples
 		);
-		analysesNextPage = null;
-    console.log("########## " + analysesNextPage)
+		// analysesNextPage = null;
+    //console.log("########## " + analysesNextPage)
   }
 
   occurrenceWriter.end();
@@ -111,12 +112,13 @@ const writeStudyAsDataset = async (studyId, pipeline) => {
       cwd: `${__dirname}/data/${studyId}`
     });
   } catch (err) {
-    console.log(err)
+    //console.log(err)
   }
 
-  console.log('Cleaning up ....')
+  //console.log('Cleaning up ....')
   del.sync([`./data/${studyId}/**`])
-  console.log('Done')
+	//console.log('Done')
+	console.log('totalCount : ' + totalCount);
 };
 
 const traverseAnalyses = async (
@@ -144,7 +146,7 @@ const traverseAnalyses = async (
 
   // Write occurrences based on SSU taxonomy to occurrences.txt
   const occurrencesSSU = filteredAnalyses.map(a => {
-    console.log(a.relationships["taxonomy-ssu"].links.related);
+    //console.log(a.relationships["taxonomy-ssu"].links.related);
     return writeOccurrencesForEvent(
       occurrenceWriter,
       a.relationships["taxonomy-ssu"].links.related,
@@ -155,7 +157,7 @@ const traverseAnalyses = async (
   })
   // Write occurrences based on LSU taxonomy to occurrences.txt
   const occurrencesLSU = filteredAnalyses.map(a => {
-    console.log(a.relationships["taxonomy-lsu"].links.related);
+    //console.log(a.relationships["taxonomy-lsu"].links.related);
     return writeOccurrencesForEvent(
       occurrenceWriter,
       a.relationships["taxonomy-lsu"].links.related,
@@ -212,25 +214,26 @@ const writeSampleEvent = (data, eventWriter) => {
 };
 
 const writeOccurrencesForEvent = async (occurrenceWriter, uri, eventID, subunit, pipeline) => {
-  // console.log("Writing occurrences for event: " + eventID)
+  // //console.log("Writing occurrences for event: " + eventID)
   const data = await getData(uri);
   try {
     writeOccurrencePageFromApi(data, eventID, occurrenceWriter, subunit, pipeline);
   } catch (err) {
-    console.log(err);
+    //console.log(err);
   }
 
   if (data.links.next) {
-    console.log("Occurrence Page done, moving to " + data.links.next);
+    //console.log("Occurrence Page done, moving to " + data.links.next);
 
     writeOccurrencesForEvent(occurrenceWriter, data.links.next, eventID, subunit, pipeline);
   } else {
-    console.log(`Finished writing occurrences for eventID ${eventID}`);
+    //console.log(`Finished writing occurrences for eventID ${eventID}`);
     return;
   }
 };
 
 const writeOccurrencePageFromApi = (data, eventID, occurrenceWriter, subunit, pipeline) => {
+	totalCount += data.data.length;
   data.data.forEach(row => {
     let kingdom = _.get(row, "attributes.hierarchy.kingdom");
     let superKingdom = _.get(row, "attributes.hierarchy.super kingdom");
@@ -261,6 +264,7 @@ const writeOccurrencePageFromApi = (data, eventID, occurrenceWriter, subunit, pi
 };
 
 async function getData(url) {
+	console.log(url);
   const response = await request({
     url: url,
     json: true
@@ -275,7 +279,7 @@ async function getData(url) {
 // writeStudyAsDataset("MGYS00002392", "4.1");
 
 const writeAllStudies = async (pipeline) => {
-  const studylist = ['MGYS00002376'];//require(`./studies/${pipeline}.json`);
+  const studylist = ['MGYS00001789'];//require(`./studies/${pipeline}.json`);
 
   // studylist.map(studyID => () => writeStudyAsDataset(studyID, pipeline)).reduce((promise, fn) => promise.then(fn), Promise.resolve())
 
