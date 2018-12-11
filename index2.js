@@ -2,6 +2,7 @@ const request = require('requestretry');
 const _ = require('lodash');
 const studies = require('./studies/4.1.json');
 const baseUrl = 'https://www.ebi.ac.uk/metagenomics/api/v1';
+const db = require('./stats');
 
 const getOccurrenceWriter = require('./writers/occurrenceWriter').getOccurrenceWriter;
 const getEventWriter = require('./writers/eventWriter').getEventWriter;
@@ -44,6 +45,7 @@ async function getStudy(studyId) {
 	await Promise.all(sampleIds.map(sampleId => getSampleEvent(sampleId, eventWriter)));
 
 	occurrenceWriter.end();
+	console.log(db.get('studyKeys'));
 }
 
 /**

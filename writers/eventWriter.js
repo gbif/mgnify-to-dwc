@@ -2,6 +2,7 @@ const csvWriter = require("csv-write-stream");
 const fs = require("fs");
 const _ = require("lodash");
 const settings = require('./settings');
+const db = require('../stats');
 
 // create required directories
 if (!fs.existsSync(`./${settings.folder}`)) {
@@ -37,7 +38,13 @@ const getEventWriter = function(studyId) {
 };
 
 const writeSampleEvent = (data, eventWriter) => {
-  const sampleMetadata = _.get(data, "attributes.sample-metadata") || [];
+	const sampleMetadata = _.get(data, "attributes.sample-metadata") || [];
+	const values = sampleMetadata.map(x => x.key);
+	const existing = db.get('sampleKeys')
+		.value;
+	db.set('sampleKeys', _.union(existing, values))
+		.write();
+		
   const line = [
     _.get(data, "id") || "",
     _.get(
