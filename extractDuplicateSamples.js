@@ -1,13 +1,9 @@
 const inquirer = require("inquirer");
 const argv = require("minimist")(process.argv.slice(2));
-const createStudyList = require('./studies/studies');
-
-function start(pipelineVersion){
-	createStudyList(require(`./studies/${pipelineVersion}`));
-}
+const extractSamples = require('./samples/extractCrossStudySamples');
 
 if (argv.p) {
-	start(argv.p);
+	extractSamples(argv.p);
 } else {
 	inquirer
 		.prompt([
@@ -19,7 +15,7 @@ if (argv.p) {
 			}
 		])
 		.then(answers => {
-			start(answers.pipelineVersion);
+			extractSamples(answers.pipelineVersion);
 		});
 }
 

@@ -34,4 +34,3 @@ const createStudyList = async (pipeline_version) => {
 module.exports = {
     createStudyList: createStudyList
 }
-

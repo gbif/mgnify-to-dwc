@@ -39,11 +39,6 @@ const getEventWriter = function(studyId) {
 
 const writeSampleEvent = (data, eventWriter) => {
 	const sampleMetadata = _.get(data, "attributes.sample-metadata") || [];
-	const values = sampleMetadata.map(x => x.key);
-	const existing = db.get('sampleKeys')
-		.value;
-	db.set('sampleKeys', _.union(existing, values))
-		.write();
 		
   const line = [
     _.get(data, "id") || "",
