@@ -102,7 +102,7 @@ const writeStudyAsDataset = async (studyId, pipeline) => {
       pipeline,
       processedSamples
 		);
-		analysesNextPage = null;
+		//analysesNextPage = null;
     //console.log("########## " + analysesNextPage)
   }
 

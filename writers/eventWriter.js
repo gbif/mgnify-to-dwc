@@ -2,7 +2,6 @@ const csvWriter = require("csv-write-stream");
 const fs = require("fs");
 const _ = require("lodash");
 const settings = require('./settings');
-const db = require('../stats');
 
 // create required directories
 if (!fs.existsSync(`./${settings.folder}`)) {
@@ -30,10 +29,18 @@ const getEventWriter = function(studyId) {
     ],
     sendHeaders: false
   });
-  eventWriter.pipe(fs.createWriteStream(`./${settings.folder}/${studyId}/event.txt`));
+  let writeStream = fs.createWriteStream(`./${settings.folder}/${studyId}/event.txt`);
+  eventWriter.pipe(writeStream);
   return {
     write: eventData => writeSampleEvent(eventData, eventWriter),
-    end: () => eventWriter.end()
+    end: () => {
+      return new Promise((resolve, reject) => {
+        eventWriter.end();
+        writeStream.on('finish', () => {
+          resolve('fs stream finished');
+        })
+      })
+    }
   };
 };
 

@@ -1,7 +1,5 @@
-const institutionMap = require('./institutionEnum')
-
 const createEML = (study, pipeline, publications) => {
-    const institution = institutionMap[study["centre-name"]] || {organizationName: study["centre-name"], address: {city: "", deliveryPoint: "", postalCode: ""}, phone: ""};
+    const institution = {organizationName: study["centre-name"], address: {city: "", deliveryPoint: "", postalCode: ""}, phone: ""};
   return `<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1"
     xmlns:dc="http://purl.org/dc/terms/"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
