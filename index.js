@@ -226,13 +226,14 @@ async function getData(url) {
 
 // giv mulighed for at starte ved et specifict study. nyttigt hvis et run fejler
 async function run() {
-  let list = [
-    'MGYS00001789',
-    'MGYS00003082',
-    'MGYS00002788',
-    'MGYS00002668',
-    'MGYS00002392',
-  ];
+  let list = studies;
+  // let list = [
+  //   'MGYS00001789',
+  //   'MGYS00003082',
+  //   'MGYS00002788',
+  //   'MGYS00002668',
+  //   'MGYS00002392',
+  // ];
   status.start({ studyCount: list.length });
 
   for (var i = 0; i < list.length; i++) {
