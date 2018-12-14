@@ -1,279 +1,265 @@
-const request = require("request-promise");
-const fs = require("fs");
-const csvWriter = require("csv-write-stream");
-const eml = require("./eml");
+/*
+Study = GBIF dataset
+A study has multiple samples. We map those to events.
+A sample can be analyzed. this is dones in runs with a pipeline and can the be analysed with multiple intruments
+An analyses has a list of taxonomies based on the SSU and LSU (short/long sub-units) - These are mapped to occurrences for that event.
+*/
+const request = require("requestretry");
 const _ = require("lodash");
-var archiver = require('archiver');
-const del = require('del');
+const fs = require("fs");
 const child_process = require("child_process");
-const studies = require('./studies')
-const baseUrl = "https://www.ebi.ac.uk/metagenomics/api/v1/";
+const del = require("del");
+const low = require('lowdb')
+const FileSync = require('lowdb/adapters/FileSync')
+const eml = require("./eml");
+const studies = require("./studies/4.1.json");
+const baseUrl = "https://www.ebi.ac.uk/metagenomics/api/v1";
+const folder = require("./writers/settings").folder;
+const status = require('./status')();
+const adapter = new FileSync('db.json')
+const db = low(adapter);
+db.defaults({ failedStudies: [], errors: [] })
+  .write();
+db.set('failedStudies', [])
+  .write();
+db.set('errors', [])
+  .write();
 
+const getOccurrenceWriter = require("./writers/occurrenceWriter").getOccurrenceWriter;
+const getEventWriter = require("./writers/eventWriter").getEventWriter;
 
-const writeStudyAsDataset = async (studyId, pipeline) => {
-    if (!fs.existsSync(`./data`)) {
-        fs.mkdirSync(`./data`);
-      }
-  
-    if (!fs.existsSync(`./data/${studyId}`)) {
-    fs.mkdirSync(`./data/${studyId}`);
+let totalCount = 0;
+let failedCount = 0;
+
+// sample to analyses map
+// write each sample/event (including info about dups in other studies)
+// for each sample create a distinctTaxonContext and run analyses with that.
+//   once final list of taxa is found, then write to file.
+// repeat for next sample
+async function iterateSamples(studyId, pipelineVersion) {
+  // create required directories
+  if (!fs.existsSync(`./data`)) {
+    fs.mkdirSync(`./data`);
   }
-  fs.createReadStream('./meta.xml').pipe(fs.createWriteStream(`./data/${studyId}/meta.xml`));
-  const occurrenceWriter = csvWriter({
-    separator: "\t",
-    newline: "\n",
-    headers: [
-      "coreID",
-      "eventID",
-      "occurrenceId",
-      "kingdom",
-      "phylum",
-      "class",
-      "order",
-      "family",
-      "genus",
-      "scientificName",
-      "rank",
-      "organismQuantity",
-      "organismQuantityType",
-      "basisOfRecord",
-      "identificationReferences",
-      "identificationRemarks"
-    ],
-    sendHeaders: false
-  });
-  const eventWriter = csvWriter({
-    separator: "\t",
-    newline: "\n",
-    headers: [
-      "eventID",
-      "samplingProtocol",
-      "eventRemarks",
-      "locality",
-      "eventDate",
-      "minimumDepthInMeters",
-      "maximumDepthInMeters",
-      "decimalLatitude",
-      "decimalLongitude",
-      "dynamicProperties"
-    ],
-    sendHeaders: false
-  });
-  occurrenceWriter.pipe(fs.createWriteStream(`./data/${studyId}/occurrence.txt`));
-  eventWriter.pipe(fs.createWriteStream(`./data/${studyId}/event.txt`));
- // const taxonomy = rna_subunit ? `taxonomy-${rna_subunit}` : "taxonomy";
-  const { data } = await request({
-    uri: `${baseUrl}studies/${studyId}`,
-    json: true
-  });
+  if (!fs.existsSync(`./${folder}/${studyId}`)) {
+    fs.mkdirSync(`./${folder}/${studyId}`);
+  }
+  // copy base meta.xml to the dataset directory. This is the same for all datasets/studies
+  fs.createReadStream("./meta.xml").pipe(
+    fs.createWriteStream(`./${folder}/${studyId}/meta.xml`)
+  );
 
-  let publications = [];
-  if (_.get(data, "relationships.publications.links.related")) {
-    const pbl = await request({
-      uri: _.get(data, "relationships.publications.links.related"),
-      json: true
+  // initiate writers
+  const eventWriter = getEventWriter(studyId);
+  const occurrenceWriter = getOccurrenceWriter(studyId);
+
+  // get study
+  const studyBody = await getData(`${baseUrl}/studies/${studyId}`);
+
+  // write study to EML
+  writeEml(studyBody, studyId, pipelineVersion);
+
+  let next = _.get(studyBody, "data.relationships.analyses.links.related");
+
+  // extract unique samples and their corresponding analyses. Do it in memory. Nothing seems to be too large for now.
+  const sampleToAnalyses = {};
+  while (next) {
+    let analysesResultPage = await getData(next);
+    analysesResultPage.data.forEach(analyses => {
+      if (_.get(analyses, "attributes.pipeline-version") === pipelineVersion) {
+        const sampleId = _.get(analyses, "relationships.sample.data.id");
+        sampleToAnalyses[sampleId] = _.union(sampleToAnalyses[sampleId] || [], [
+          analyses
+        ]);
+      }
     });
+    next = _.get(analysesResultPage, "links.next"); // get the next page of analyses
+  }
+
+  // write each sample/event (including info about duplicates in other studies)
+  const duplicates = require(`./samples/${pipelineVersion}`);
+  let sampleIds = Object.keys(sampleToAnalyses);
+  status.update({ sampleCount: sampleIds.length });
+  // set a limit on this or serialize it.
+  for (sampleId of sampleIds) {
+    await saveSampleEvent(eventWriter, sampleId, duplicates[sampleId])
+  }
+
+  // for each sample create a distinctTaxonContext and run analyses with that.
+  let sampleKeys = Object.keys(sampleToAnalyses);
+  let studyCount = 0;
+  for (var i = 0; i < sampleKeys.length; i++) {
+    const sampleID = sampleKeys[i];
+    const analysesList = sampleToAnalyses[sampleID];
+    status.update({ sampleIndex: i + 1, activeSample: sampleID });
+    let taxa = {}; // has format taxaID: {occ, basedOn: [{analysesID, subUnit}], primary: {analysesID, subUnit}}
+
+    // iterate over occurrences for that analyses and add them to the taxa map
+    const occurrences = await Promise.all(
+      analysesList.map(analyses => getOccurrencesFromAnalyses(analyses))
+    );
+    occurrences.forEach(occurrenceData => {
+      occurrenceData.ssu.forEach(occ => {
+        const basis = { analysesID: occurrenceData.analysesID, subUnit: "ssu" };
+        taxa[occ.id] = taxa[occ.id] ? taxa[occ.id] : { o: occ, basedOn: [] };
+        taxa[occ.id].basedOn.push(basis); // add support claim
+        // if larger or equal count, then set as primary evidence
+        const count = _.get(occ, "attributes.count", 0);
+        if (count >= _.get(taxa[occ.id], "attributes.count", 0)) {
+          taxa[occ.id].primary = basis;
+        }
+      });
+    });
+    // save the distinct taxa as occurrences for the event
+    studyCount += Object.keys(taxa).length;
+    totalCount += Object.keys(taxa).length;
+    status.update({ totalStudyCount: studyCount, totalOccurrenceCount: totalCount });
+    _.values(taxa).forEach(taxon => {
+      // save taxon
+      occurrenceWriter.write(taxon, { eventID: sampleID, pipelineVersion });
+    });
+  }
+
+  cleanUp(studyId, occurrenceWriter, eventWriter);
+}
+
+/**
+ * Get the sample event and write it to file
+ */
+const saveSampleEvent = async (eventWriter, sampleId, studyList) => {
+  const { data } = await getData(`${baseUrl}/samples/${sampleId}`);
+  eventWriter.write(data, { studyList });
+};
+
+/**
+ * extract occurrences. Using lsu and ssu. No duplicate testing.
+ */
+async function getOccurrencesFromAnalyses(analyses) {
+  let lsu = _.get(analyses, "relationships.taxonomy-lsu.links.related");
+  let ssu = _.get(analyses, "relationships.taxonomy-ssu.links.related");
+  let lsuOccurrences = await getOccurrences(lsu);
+  let ssuOccurrences = await getOccurrences(ssu);
+  return { analysesID: analyses.id, lsu: lsuOccurrences, ssu: ssuOccurrences };
+}
+
+async function getOccurrences(url) {
+  let next = url;
+  let occurrences = [];
+  while (next) {
+    // get the occurrences
+    let body = await getData(next);
+    occurrences = occurrences.concat(body.data);
+    // go to next page
+    next = body.links.next;
+  }
+  return occurrences;
+}
+
+async function writeEml(study, pipeline) {
+  // get all publications from study so they can be listed as bibliographical referencse on the dataset
+  const { data } = study;
+  const studyId = data.id;
+  let publications = [];
+  if (_.has(data, "relationships.publications.links.related")) {
+    const pbl = await getData(
+      _.get(data, "relationships.publications.links.related")
+    );
     publications = pbl.data;
   }
-  // write the eml here
+
+  // Create the EML based on the infor we retrived about the study
   const emlData = eml.createEML(data.attributes, pipeline, publications);
-  fs.writeFile(`./data/${studyId}/eml.xml`, emlData, function(err) {
+  fs.writeFile(`./${folder}/${studyId}/eml.xml`, emlData, function (err) {
     if (err) {
-      return console.log(err);
+      db.get('errors')
+        .push({ message: 'Failed to write EML: ' + studyId, err: err.toString() })
+        .write()
+      throw err;
     }
-
-    console.log("The EML file was saved!");
   });
-
-  let analysesNextPage = data.relationships.analyses.links.related;
-  const processedSamples = {};
-  while(analysesNextPage !== null){
-  analysesNextPage = await traverseAnalyses(
-    analysesNextPage,
-    occurrenceWriter,
-    eventWriter,
-    pipeline,
-    processedSamples
-  );
-  console.log("########## "+ analysesNextPage)
-}   
-
-
-
-  occurrenceWriter.end();
-  eventWriter.end();
-try{
-  child_process.execSync(`zip -r ${__dirname}/data/${studyId}.zip *`, {
-    cwd: `${__dirname}/data/${studyId}`
-  });
-} catch(err){
-  console.log(err)
 }
 
-console.log('Cleaning up ....')
-del.sync([`./data/${studyId}/**`])
-console.log('Done') 
-
-};
-const traverseAnalyses = async (
-  uri,
-  occurrenceWriter,
-  eventWriter,
-  pipeline,
-  processedSamples
-) => {
-  const analyses = await request({
-    uri: uri,
-    json: true
-  });
-
-  const filteredAnalyses = [];
-   analyses.data.forEach((a) => 
-  { if(a.attributes["pipeline-version"] === pipeline && !processedSamples[a.relationships.sample.data.id]){
-    filteredAnalyses.push(a);
-    processedSamples[a.relationships.sample.data.id] = true;
-  } }
- )
-  // Write the sample events to events.txt
-  const sampleEvents = filteredAnalyses.map(a =>  {
-    processedSamples[a.relationships.sample.data.id] = true;
-   return getSampleEventFromApi(eventWriter, a.relationships.sample.links.related)
-  })
-
-  // Write occurrences based on SSU taxonomy to occurrences.txt
-  const occurrencesSSU = filteredAnalyses.map(a => {
-    console.log("Write SSU occs " + a.relationships["taxonomy-ssu"].links.related);
-    return writeOccurrencesForEvent(
-      occurrenceWriter,
-      a.relationships["taxonomy-ssu"].links.related,
-      a.relationships.sample.data.id,
-      'SSU',
-      pipeline
-    );
-  })
-  // Write occurrences based on LSU taxonomy to occurrences.txt
-  const occurrencesLSU = filteredAnalyses.map(a => {
-   console.log("Write LSU occs " + a.relationships["taxonomy-lsu"].links.related);
-   return writeOccurrencesForEvent(
-     occurrenceWriter,
-     a.relationships["taxonomy-lsu"].links.related,
-     a.relationships.sample.data.id,
-     'LSU',
-     pipeline
-   );
- })
-  await Promise.all([...sampleEvents, ...occurrencesSSU, ...occurrencesLSU]);
-
-  return analyses.links.next;
-
-
-};
-
-const getSampleEventFromApi = async (eventWriter, uri) => {
-  const { data } = await request({
-    uri: uri,
-    json: true
-  });
-   writeSampleEvent(data, eventWriter);
-};
-
-const writeSampleEvent = (data, eventWriter) => {
-  const sampleMetadata = _.get(data, "attributes.sample-metadata") || [];
-
-  const line = [
-    _.get(data, "id") || "",
-    _.get(
-      sampleMetadata.find(({ key }) => key === "protocol label"),
-      "value"
-    ) || "",
-    _.get(data, "attributes.sample-desc") || "",
-    _.get(sampleMetadata.find(({ key }) => key === "marine region"), "value") ||
-      "",
-    _.get(data, "attributes.collection-date") || "",
-    _.get(
-      sampleMetadata.find(({ key }) => key === "geographic location (depth)" || key === "depth"),
-      "value"
-    ) || "",
-    _.get(
-      sampleMetadata.find(({ key }) => key === "geographic location (depth)" || key === "depth"),
-      "value"
-    ) || "",
-    _.get(data, "attributes.latitude") || "",
-    _.get(data, "attributes.longitude") || "",
-    JSON.stringify(
-      sampleMetadata
-        .filter(
-          ({ key }) =>
-            key !== "geographic location (depth)" &&
-            key !== "depth" &&
-            key !== "marine region" &&
-            key !== "protocol label"
-        )
-        .reduce((val, o) => ({ ...val, [o.key]: o.value }), {})
-    )
-  ];
-  eventWriter.write(line);
-};
-
-const writeOccurrencesForEvent = async (occurrenceWriter, uri, eventID, subunit, pipeline) => {
-  console.log("Writing occurrences for event: "+eventID)
-  const data = await request({
-    uri: uri,
-    json: true
-  });
+async function cleanUp(studyId, occurrenceWriter, eventWriter) {
+  await occurrenceWriter.end();
+  await eventWriter.end();
   try {
-    writeOccurrencePageFromApi(data, eventID, occurrenceWriter, subunit, pipeline);
+    child_process.execSync(
+      `zip -r ${__dirname}/${folder}/${studyId}.zip *`,
+      {
+        cwd: `${__dirname}/${folder}/${studyId}`
+      }
+    );
   } catch (err) {
-    console.log(err);
+    db.get('errors')
+      .push({ message: 'Failed to clean up studyId: ' + studyId, err: err.toString() })
+      .write()
+    throw err;
   }
-
-  if (data.links.next) {
-    console.log("Occurrence Page done, moving to " + data.links.next);
-
-    writeOccurrencesForEvent(occurrenceWriter, data.links.next, eventID, subunit, pipeline);
-  } else {
-    console.log(`Finished writing occurrences for eventID ${eventID}`);
-    return;
-  }
-};
-
-const writeOccurrencePageFromApi = (data, eventID, occurrenceWriter, subunit, pipeline) => {
-  data.data.forEach(row => {
-    const line = [
-      eventID,
-      eventID,
-      `${eventID}_${subunit}_${_.get(row, "id")}`,
-      _.get(row, "attributes.hierarchy.kingdom") || "",
-      _.get(row, "attributes.hierarchy.phylum") || "",
-      _.get(row, "attributes.hierarchy.class") || "",
-      _.get(row, "attributes.hierarchy.order") || "",
-      _.get(row, "attributes.hierarchy.family") || "",
-      _.get(row, "attributes.hierarchy.genus") || "",
-      (_.get(row, "attributes.name")) ? _.get(row, "attributes.name").replace("_", " ") : "",
-      _.get(row, "attributes.rank") || "",
-      _.get(row, "attributes.count") || "",
-      "DNA sequence reads",
-      "MATERIAL_SAMPLE",
-      `https://www.ebi.ac.uk/metagenomics/pipelines/${pipeline}`,
-      `${subunit} rRNA annotated using the taxonomic reference database described here: https://www.ebi.ac.uk/metagenomics/pipelines/${pipeline}`
-      
-    ];
-    occurrenceWriter.write(line);
-  });
-};
-
-// write a single study:
-// writeStudyAsDataset("MGYS00002392", "4.1");
-
-const writeAllStudies = async (pipeline) =>{
-  const studylist = await studies.createStudyList(pipeline);
-
-  // Probably do it sequential
-
-  studylist.map(studyID => () => writeStudyAsDataset(studyID, pipeline) ).reduce((promise, fn) => promise.then(fn), Promise.resolve())
-
-
-
+  del.sync([`./${folder}/${studyId}/**`]);
 }
 
-writeAllStudies('4.1')
+async function getData(url) {
+  try {
+    const start = new Date();
+    status.update({ latestUrl: url });
+    const response = await request.get({
+      url: url,
+      timeout: 60000,
+      maxAttempts: 5,   // (default) try 5 times
+      retryDelay: 20000,
+      json: true
+    });
+    const end = new Date();
+    status.updateResponseTime(end - start);
+    if (response.statusCode !== 200) {
+      throw new Error("wrong status code");
+    }
+    // console.log(url + ',' + response.body.data.length);
+    return response.body;
+  } catch (err) {
+    db.get('errors')
+      .push({ message: 'Failed to get ressource: ' + url, err: err.toString() })
+      .write()
+    throw err;
+  }
+}
+
+// giv mulighed for at starte ved et specifict study. nyttigt hvis et run fejler
+async function run() {
+  let list = studies;
+  // let list = [
+  //   'MGYS00001789',
+  //   'MGYS00003082',
+  //   'MGYS00002788',
+  //   'MGYS00002668',
+  //   'MGYS00002392',
+  // ];
+  status.start({ studyCount: list.length });
+
+  for (var i = 0; i < list.length; i++) {
+    const studyID = list[i];
+    status.update({ studyIndex: i + 1, activeStudy: studyID });
+    try {
+      await iterateSamples(studyID, "4.1");
+    } catch (err) {
+      // Add a post
+      failedCount++;
+      status.update({ failedCount });
+      del.sync([`./${folder}/${studyID}/**`]);
+      db.get('failedStudies')
+        .push({ id: studyID, err: err.toString() })
+        .write()
+    }
+  }
+  status.close();
+}
+
+run();
+
+// data der giver mening at vise/logge
+// pipeline chosen
+// starting at study: xxx
+// progress | current | occurrence count
+// ---------|---------|------------------
+// studie 1/1000 | active studyID | total occ count
+// sample 20/100 | active sampleID | running study count
