@@ -32,7 +32,7 @@ const createStudyList = async pipeline_version => {
 			start,
 			facets
 		};
-		const url = `${baseUrl}?${baseQuery}&${query}`;
+		const url = `${baseUrl}?${queryString.stringify(pageQuery)}`;
     const response = await request({
       url: url,
       json: true

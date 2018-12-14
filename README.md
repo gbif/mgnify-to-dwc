@@ -17,9 +17,18 @@ install dependencies
 ```
 npm install
 ````
+
 run it (will take some time):
 
 ```
-node index.js
+npm start
 ````
+
+Or to do it in parts
+
+`node extractStudies` or `node extractStudies -p 4.1`
+`node extractDuplicateSamples` or `node extractDuplicateSamples -p 4.1`
+`node extractDatasets` or `node extractDatasets -p 4.1`
+
+
 

@@ -12,7 +12,6 @@ const del = require("del");
 const low = require('lowdb')
 const FileSync = require('lowdb/adapters/FileSync')
 const eml = require("./eml");
-const studies = require("./studies/4.1.json");
 const baseUrl = "https://www.ebi.ac.uk/metagenomics/api/v1";
 const folder = require("./writers/settings").folder;
 const status = require('./status')();
@@ -225,22 +224,15 @@ async function getData(url) {
 }
 
 // giv mulighed for at starte ved et specifict study. nyttigt hvis et run fejler
-async function run() {
-  let list = studies;
-  // let list = [
-  //   'MGYS00001789',
-  //   'MGYS00003082',
-  //   'MGYS00002788',
-  //   'MGYS00002668',
-  //   'MGYS00002392',
-  // ];
+async function run(pipelineVersion) {
+  const list = require(`./studies/${pipelineVersion}.json`);
   status.start({ studyCount: list.length });
 
   for (var i = 0; i < list.length; i++) {
     const studyID = list[i];
     status.update({ studyIndex: i + 1, activeStudy: studyID });
     try {
-      await iterateSamples(studyID, "4.1");
+      await iterateSamples(studyID, pipelineVersion);
     } catch (err) {
       // Add a post
       failedCount++;
@@ -254,12 +246,4 @@ async function run() {
   status.close();
 }
 
-run();
-
-// data der giver mening at vise/logge
-// pipeline chosen
-// starting at study: xxx
-// progress | current | occurrence count
-// ---------|---------|------------------
-// studie 1/1000 | active studyID | total occ count
-// sample 20/100 | active sampleID | running study count
+module.exports = run;

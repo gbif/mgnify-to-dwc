@@ -1,5 +1,6 @@
 const inquirer = require("inquirer");
-const argv = require("minimist")(process.argv.slice(2));
+const parseArgs = require('minimist');
+const argv = parseArgs(process.argv.slice(2), {string: ['p']});
 const extractSamples = require('./samples/extractCrossStudySamples');
 
 if (argv.p) {

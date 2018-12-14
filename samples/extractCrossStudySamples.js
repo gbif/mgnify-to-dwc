@@ -62,10 +62,6 @@ async function getData(url) {
 
 async function run(pipelineVersion) {
 	const studies = require(`../studies/${pipelineVersion}`)
-	// const studies = [
-  //   'MGYS00001789',
-  //   'MGYS00002392'
-	// ]
 	for (studyId of studies) {
 		await iterateSamples(studyId, pipelineVersion);
 	}

@@ -1,14 +1,10 @@
 const inquirer = require("inquirer");
 const parseArgs = require('minimist');
 const argv = parseArgs(process.argv.slice(2), {string: ['p']});
-const createStudyList = require('./studies/studies');
-
-function start(pipelineVersion){
-	createStudyList(pipelineVersion);
-}
+const createDatasets = require('./createDatasets');
 
 if (argv.p) {
-	start(argv.p);
+	createDatasets(argv.p);
 } else {
 	inquirer
 		.prompt([
@@ -20,7 +16,7 @@ if (argv.p) {
 			}
 		])
 		.then(answers => {
-			start(answers.pipelineVersion);
+			createDatasets(answers.pipelineVersion);
 		});
 }
 

@@ -13,5 +13,24 @@
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
     "requestretry": "^3.1.0"
-  }
+  },
+  "name": "mgnify-to-dwc",
+  "description": "Extract MGnify studies to DwC archives",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "start": "node extractStudies -p 4.1; node extractDuplicateSamples -p 4.1; node extractDatasets.js -p 4.1",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gbif/mgnify-to-dwc.git"
+  },
+  "author": "GBIF Secretariat <informatics@gbif.org>",
+  "license": "Apache 2.0",
+  "bugs": {
+    "url": "https://github.com/gbif/mgnify-to-dwc/issues"
+  },
+  "homepage": "https://github.com/gbif/mgnify-to-dwc#readme"
 }
