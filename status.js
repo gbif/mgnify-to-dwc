@@ -8,7 +8,6 @@ var table = new Table({
 });
 
 module.exports = function() {
-  let printer;
   let intervalHandle;
   let state = {
     studyIndex: 0,
