@@ -18,7 +18,10 @@ module.exports = function() {
 		activeStudy: '',
 		activeSample: '',
     totalOccurrenceCount: 0,
-    totalStudyCount: 0
+    totalStudyCount: 0,
+    failedCount: 0,
+    responseTime: 0,
+    latestUrl: ''
   };
 
 	let printTable = function() {
@@ -27,16 +30,19 @@ module.exports = function() {
 			[`Sample ${state.sampleIndex}/${state.sampleCount}`, state.activeSample, `Study ${state.totalStudyCount}`]
 		);
 		console.log(table.toString());
+		console.log(`Failed studies: ${state.failedCount}`);
+		console.log(`API response time: ${state.responseTime}`);
+		console.log(`GET: ${state.latestUrl}                         `);
 		table.pop();
 		table.pop();
 	}
 
   let start = function(startState) {
-		_.assign(state, startState);
+    _.assign(state, startState);
 		printTable();
 		
     intervalHandle = setInterval(() => {
-			process.stdout.moveCursor(0, -7);
+			process.stdout.moveCursor(0, -10);
 			process.stdout.cursorTo(0);
 			printTable();
     }, 200);
@@ -46,12 +52,21 @@ module.exports = function() {
     _.assign(state, newState);
   };
 
+  let responseTimes = [0,0,0,0,0];
+  let updateResponseTime = function(time) {
+    responseTimes.pop();
+    responseTimes.unshift(time);
+    state.responseTime = _.sum(responseTimes)/5;
+  };
+
   let close = function() {
     clearInterval(intervalHandle);
   };
+
   return {
     start: start,
     update: update,
-    close: close
+    close: close,
+    updateResponseTime: updateResponseTime
   };
 };

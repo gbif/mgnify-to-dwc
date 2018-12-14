@@ -1,17 +1,4 @@
 {
-  "studies": 0,
-  "sampleKeys": [
-    "temperature",
-    "geographic location (longitude)",
-    "collection date",
-    "environment (biome)",
-    "environment (feature)",
-    "environment (material)",
-    "environmental package",
-    "sample collection device or method",
-    "depth",
-    "salinity",
-    "geographic location (latitude)",
-    "instrument model"
-  ]
+  "failedStudies": [],
+  "errors": []
 }
