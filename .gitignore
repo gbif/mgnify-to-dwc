@@ -3,4 +3,5 @@
 # dependencies
 /node_modules
 /data2
+/data
 .DS_Store
