@@ -56,7 +56,7 @@ async function iterateSamples(studyId, pipelineVersion) {
   const studyBody = await getData(`${baseUrl}/studies/${studyId}`);
 
   // write study to EML
-  writeEml(studyBody, studyId, pipelineVersion);
+  writeEml(studyBody, pipelineVersion);
 
   let next = _.get(studyBody, "data.relationships.analyses.links.related");
 
