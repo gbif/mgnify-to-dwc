@@ -5,7 +5,7 @@ Extract MGnify studies to DwC archives
 Clone this repository
 
 ```
-git clone https://github.com/thomasstjerne/mgnify-to-dwc.git
+git clone https://github.com/gbif/mgnify-to-dwc.git
 ```
 cd into the project
 

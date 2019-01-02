@@ -57,7 +57,7 @@ const writeOccurrence = (occurrence, meta, occurrenceWriter) => {
 
   let remark = 'This occurrence appeared in following analyses:';
   occurrence.basedOn.forEach(evidence => {
-    remark += ` Sub unit ${evidence.subUnit} from analyses https://www.ebi.ac.uk/metagenomics/api/v1/analyses/${evidence.analysesID}.`
+    remark += ` Subunit ${evidence.subUnit} from analyses https://www.ebi.ac.uk/metagenomics/api/v1/analyses/${evidence.analysesID}.`
   });
 
   const row = occurrence.o;

@@ -1,4 +1,5 @@
 const institutionMap = require('./institutionEnum')
+const _ = require('lodash')
 
 const createEML = (study, pipeline, publications) => {
     const institution = institutionMap[study["centre-name"]] || {organizationName: study["centre-name"], address: {city: "", deliveryPoint: "", postalCode: ""}, phone: ""};
@@ -9,7 +10,7 @@ const createEML = (study, pipeline, publications) => {
     packageId="84d26682-f762-11e1-a439-00145eb45e9a/v9.3" system="http://gbif.org" scope="system"
     xml:lang="en">
 <dataset>
-<title xml:lang="en">${study["study-name"]}</title>
+<title xml:lang="en">${_.escape(study["study-name"])}</title>
 
 <creator>
 <organizationName>${institution.organizationName}</organizationName>
@@ -38,7 +39,7 @@ const createEML = (study, pipeline, publications) => {
 </pubDate>
 <language>en</language>
 <abstract>
-     <para>${study["study-abstract"]}</para>
+     <para>${_.escape(study["study-abstract"])}</para>
 </abstract>
 <keywordSet>
        <keyword>Metagenomics</keyword>
@@ -85,14 +86,14 @@ const createEML = (study, pipeline, publications) => {
 
    <samplingDescription>
      <para>
-     ${study["study-abstract"]}
+     ${_.escape(study["study-abstract"])}
      </para>
    </samplingDescription>
  </sampling>
  
 </methods>
 <project >
-<title>${study["study-name"]}</title>
+<title>${_.escape(study["study-name"])}</title>
 
 </project>
 </dataset>
