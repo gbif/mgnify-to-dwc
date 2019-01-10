@@ -13,7 +13,7 @@ const getEventWriter = function(studyId) {
     fs.mkdirSync(`./${settings.folder}/${studyId}`);
   }
   const eventWriter = csvWriter({
-    separator: "\t",
+    separator: ",",
     newline: "\n",
     headers: [
       "eventID",

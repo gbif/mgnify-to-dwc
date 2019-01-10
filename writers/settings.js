@@ -1,3 +1,3 @@
 module.exports = {
-	folder: 'data2'
+	folder: 'data'
 };

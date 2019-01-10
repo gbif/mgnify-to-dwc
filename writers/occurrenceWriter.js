@@ -13,7 +13,7 @@ const getOccurrenceWriter = function(studyId) {
     fs.mkdirSync(`./${settings.folder}/${studyId}`);
   }
   const occurrenceWriter = csvWriter({
-    separator: "\t",
+    separator: ",",
     newline: "\n",
     headers: [
       "coreID",
