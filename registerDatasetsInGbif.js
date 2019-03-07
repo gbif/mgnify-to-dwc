@@ -3,31 +3,8 @@ const _ = require("lodash");
 const fs = require("fs");
 const settings = require("./writers/settings");
 const identifierPrefix = "https://www.ebi.ac.uk/metagenomics/studies/";
+const config = require("./config")
 
-const config = {
-  uat: {
-    publishingOrganizationKey: "480dd716-14dc-4807-a912-d0f4ac28623d",
-    installationKey: "41e5ac50-ae41-4c9d-b6c6-1259b5cd9898",
-    baseUrl: "http://api.gbif-uat.org/v1/",
-    hostUrl: "http://labs.gbif.org/~mhoefft/mgnify/",
-    path: "/var/www/html/mgnify"
-    },
-  dev: {
-    publishingOrganizationKey: "ada9d123-ddb4-467d-8891-806ea8d94230",
-    baseUrl: "http://api.gbif-dev.org/v1/",
-    hostUrl: "http://labs.gbif.org/~mhoefft/mgnify/",
-    path: "/var/www/html/mgnify",
-    installationKey: "9e4f3516-2b98-4700-a39a-3f109252508c"
-  },
-  prod: {
-    publishingOrganizationKey: "",
-    baseUrl: "http://api.gbif.org/v1/",
-    hostUrl: "https://hosted-datasets.gbif.org/",
-    path: "/mnt/auto/misc/hosted-datasets.gbif.org/mgnify/",
-    installationKey: "", // unknown
-    publishingOrganizationKey: "" // unknown
-  }
-};
 
 const isRegisteredInGBIF = async (studyId, env) => {
   const response = await request.get({
@@ -37,19 +14,20 @@ const isRegisteredInGBIF = async (studyId, env) => {
     retryDelay: 20000,
     json: true
   });
-  if (response.body.count > 1) {
+  const registeredAndNotDeletedDatasets = response.body.results.filter(d => _.isUndefined(d.deleted))
+  if (registeredAndNotDeletedDatasets.length > 1) {
     console.error(
-      `Study id ${studyId} is registered ${response.body.count} times in GBIF`
+      `Study id ${studyId} is registered ${registeredAndNotDeletedDatasets.length} times in GBIF`
     );
   }
-  return response.body.count === 1;
+  return registeredAndNotDeletedDatasets.length === 1;
 };
 const addIdentifier = async (studyId, uuid, username, password, env) => {
   const auth =
     "Basic " + new Buffer(username + ":" + password).toString("base64");
 
   return request.post({
-    url: `${baseUrl}dataset/${uuid}/identifier`,
+    url: `${env.baseUrl}dataset/${uuid}/identifier`,
     headers: {
       Authorization: auth
     },
@@ -70,7 +48,7 @@ const addEndpoint = async (studyId, uuid, username, password, env) => {
     "Basic " + new Buffer(username + ":" + password).toString("base64");
 
   return request.post({
-    url: `${baseUrl}dataset/${uuid}/endpoint`,
+    url: `${env.baseUrl}dataset/${uuid}/endpoint`,
     headers: {
       Authorization: auth
     },
@@ -124,9 +102,9 @@ const crawlDataset = (uuid, username, password, env) => {
 };
 
 const registerStudies = async (environment, username, password) => {
+  
   const env = config[environment];
-  // path here?
-  fs.readdir(`./${settings.folder}`, function(err, studies) {
+  fs.readdir(env.path, function(err, studies) {
     if (err) {
       console.log("Err: " + err);
     }
