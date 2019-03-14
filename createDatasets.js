@@ -330,6 +330,6 @@ async function run(pipelineVersion, study) {
   status.close();
 }
 
-run('4.1', 'MGYS00003130')
+//run('4.1', 'MGYS00003130')
 
 module.exports = run;
