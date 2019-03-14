@@ -25,14 +25,16 @@ const getEventWriter = function(studyId) {
       "maximumDepthInMeters",
       "decimalLatitude",
       "decimalLongitude",
-      "dynamicProperties"
+      "dynamicProperties",
+      "sampleSizeValue",
+      "sampleSizeUnit"
     ],
     sendHeaders: false
   });
   let writeStream = fs.createWriteStream(`./${settings.folder}/${studyId}/event.txt`);
   eventWriter.pipe(writeStream);
   return {
-    write: eventData => writeSampleEvent(eventData, eventWriter),
+    write: (eventData, analysis) => writeSampleEvent(eventData, analysis, eventWriter),
     end: () => {
       return new Promise((resolve, reject) => {
         eventWriter.end();
@@ -44,11 +46,11 @@ const getEventWriter = function(studyId) {
   };
 };
 
-const writeSampleEvent = (data, eventWriter) => {
+const writeSampleEvent = (data, analysis, eventWriter) => {
 	const sampleMetadata = _.get(data, "attributes.sample-metadata") || [];
-		
+	const sampleSizeValue = _.get(analysis, "attributes.analysis-summary").find(e => e.key === "Nucleotide sequences with predicted RNA")	
   const line = [
-    _.get(data, "id") || "",
+    _.get(analysis, "id") || "",
     _.get(
       sampleMetadata.find(({ key }) => key === "protocol label"),
       "value"
@@ -81,7 +83,9 @@ const writeSampleEvent = (data, eventWriter) => {
             key !== "protocol label"
         )
         .reduce((val, o) => ({ ...val, [o.key]: o.value }), {})
-    )
+    ),
+    _.get(sampleSizeValue, "value") || "",
+    "DNA sequence reads"
 	];
 	const cleanLine = line.map(x => cleanValue(x))
   eventWriter.write(cleanLine);

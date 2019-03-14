@@ -35,7 +35,7 @@ let failedCount = 0;
 // for each sample create a distinctTaxonContext and run analyses with that.
 //   once final list of taxa is found, then write to file.
 // repeat for next sample
-async function iterateSamples(studyId, pipelineVersion) {
+/* async function iterateSamples2(studyId, pipelineVersion) {
   // create required directories
   if (!fs.existsSync(`./data`)) {
     fs.mkdirSync(`./data`);
@@ -81,7 +81,7 @@ async function iterateSamples(studyId, pipelineVersion) {
   status.update({ sampleCount: sampleIds.length });
   // set a limit on this or serialize it.
   for (sampleId of sampleIds) {
-    await saveSampleEvent(eventWriter, sampleId, duplicates[sampleId])
+    await saveSampleEvent(eventWriter, sampleId, analysis, duplicates[sampleId])
   }
 
   // for each sample create a distinctTaxonContext and run analyses with that.
@@ -120,14 +120,98 @@ async function iterateSamples(studyId, pipelineVersion) {
   }
 
   cleanUp(studyId, occurrenceWriter, eventWriter);
+} */
+
+async function iterateSamples(studyId, pipelineVersion) {
+  // create required directories
+  if (!fs.existsSync(`./data`)) {
+    fs.mkdirSync(`./data`);
+  }
+  if (!fs.existsSync(`./${folder}/${studyId}`)) {
+    fs.mkdirSync(`./${folder}/${studyId}`);
+  }
+  // copy base meta.xml to the dataset directory. This is the same for all datasets/studies
+  fs.createReadStream("./meta.xml").pipe(
+    fs.createWriteStream(`./${folder}/${studyId}/meta.xml`)
+  );
+
+  // initiate writers
+  const eventWriter = getEventWriter(studyId);
+  const occurrenceWriter = getOccurrenceWriter(studyId);
+
+  // get study
+  const studyBody = await getData(`${baseUrl}/studies/${studyId}`);
+
+  // write study to EML
+  writeEml(studyBody, pipelineVersion);
+
+  // write each sample/event (including info about duplicates in other studies)
+  const duplicates = require(`./samples/${pipelineVersion}`);
+
+  let next = _.get(studyBody, "data.relationships.analyses.links.related");
+
+  status.update({ analysisCount: _.get(studyBody, "meta.count") });
+  let analysisIndex = 0;
+  let studyCount = 0;
+
+  // extract unique samples and their corresponding analyses. Do it in memory. Nothing seems to be too large for now.
+  while (next) {
+    let analysesResultPage = await getData(next);
+   
+    for (const analysis of analysesResultPage.data) {
+       // console.log(JSON.stringify(analysis))
+      if (_.get(analysis, "attributes.pipeline-version") === pipelineVersion) {
+        const sampleID = _.get(analysis, "relationships.sample.data.id");
+        console.log(sampleID)
+        await saveSampleEvent(eventWriter, sampleID, analysis, duplicates[sampleID])
+        console.log('done')
+        analysisIndex ++;
+        status.update({ analysisIndex: analysisIndex, activeAnalysis: analysis.id, activeSample: sampleID });
+        let taxa = {}; // has format taxaID: {occ, basedOn: [{analysesID, subUnit}], primary: {analysesID, subUnit}}
+    
+        // iterate over occurrences for that analyses and add them to the taxa map
+        const occurrenceData = await getOccurrencesFromAnalyses(analysis)
+
+        
+          occurrenceData.ssu.forEach(occ => {
+            const basis = { analysesID: occurrenceData.analysesID, subUnit: "ssu" };
+            taxa[occ.id] = taxa[occ.id] ? taxa[occ.id] : { o: occ, basedOn: [] };
+            taxa[occ.id].basedOn.push(basis); // add support claim
+            // if larger or equal count, then set as primary evidence
+            const count = _.get(occ, "attributes.count", 0);
+            if (count >= _.get(taxa[occ.id], "attributes.count", 0)) {
+              taxa[occ.id].primary = basis;
+            }
+          });
+      
+        // save the distinct taxa as occurrences for the event
+        studyCount += Object.keys(taxa).length;
+        totalCount += Object.keys(taxa).length;
+        status.update({ totalStudyCount: studyCount, totalOccurrenceCount: totalCount });
+        _.values(taxa).forEach(taxon => {
+          // save taxon
+          occurrenceWriter.write(taxon, { eventID: _.get(analysis, 'id'), pipelineVersion }, analysis );
+        });
+
+
+      }
+    }
+    
+  
+    next = _.get(analysesResultPage, "links.next"); // get the next page of analyses
+  }
+ 
+
+
+  cleanUp(studyId, occurrenceWriter, eventWriter);
 }
 
 /**
  * Get the sample event and write it to file
  */
-const saveSampleEvent = async (eventWriter, sampleId, studyList) => {
+const saveSampleEvent = async (eventWriter, sampleId, analysis, studyList) => {
   const { data } = await getData(`${baseUrl}/samples/${sampleId}`);
-  eventWriter.write(data, { studyList });
+  eventWriter.write(data, analysis, { studyList });
 };
 
 /**
@@ -245,5 +329,7 @@ async function run(pipelineVersion, study) {
   }
   status.close();
 }
+
+run('4.1', 'MGYS00003130')
 
 module.exports = run;

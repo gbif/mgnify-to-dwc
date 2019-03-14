@@ -38,7 +38,7 @@ const getOccurrenceWriter = function(studyId) {
   let writeStream = fs.createWriteStream(`./${settings.folder}/${studyId}/occurrence.txt`);
   occurrenceWriter.pipe(writeStream);
   return {
-    write: (occurrence, meta) => writeOccurrence(occurrence, meta, occurrenceWriter),
+    write: (occurrence, meta, analysis) => writeOccurrence(occurrence, meta, analysis, occurrenceWriter),
     end: () => {
       return new Promise((resolve, reject) => {
         occurrenceWriter.end();
@@ -50,7 +50,7 @@ const getOccurrenceWriter = function(studyId) {
   };
 };
 
-const writeOccurrence = (occurrence, meta, occurrenceWriter) => {
+const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
   eventID = meta.eventID;
   subUnit = occurrence.primary.subUnit;
   pipelineVersion = meta.pipelineVersion;
