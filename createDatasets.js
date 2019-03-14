@@ -224,8 +224,8 @@ async function getData(url) {
 }
 
 // giv mulighed for at starte ved et specifict study. nyttigt hvis et run fejler
-async function run(pipelineVersion) {
-  const list = require(`./studies/${pipelineVersion}.json`);
+async function run(pipelineVersion, study) {
+  const list = study ? [study] : require(`./studies/${pipelineVersion}.json`);
   status.start({ studyCount: list.length });
 
   for (var i = 0; i < list.length; i++) {

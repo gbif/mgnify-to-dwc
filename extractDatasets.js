@@ -13,10 +13,16 @@ if (argv.p) {
 				name: "pipelineVersion",
 				message: "What pipeline do you want to use?",
 				default: "4.1"
+			},
+			{
+				type: "input",
+				name: "study",
+				message: "Do you want to run a specific study only (studyId)",
+				default: ""
 			}
 		])
 		.then(answers => {
-			createDatasets(answers.pipelineVersion);
+			createDatasets(answers.pipelineVersion, answers.study);
 		});
 }
 

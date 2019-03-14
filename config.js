@@ -14,7 +14,7 @@ module.exports = {
       installationKey: "9e4f3516-2b98-4700-a39a-3f109252508c"
     },
     prod: {
-      publishingOrganizationKey: "ada9d123-ddb4-467d-8891-806ea8d94230",
+      publishingOrganizationKey: "ab733144-7043-4e88-bd4f-fca7bf858880",
       baseUrl: "http://api.gbif.org/v1/",
       hostUrl: "https://hosted-datasets.gbif.org/mgnify/",
       path: "/mnt/auto/misc/hosted-datasets.gbif.org/mgnify/",
