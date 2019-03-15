@@ -77,14 +77,17 @@ const createEML = (study, pipeline, publications) => {
 
  </contact>
 <methods>
-   
+   <methodStep>
+     <description>
+       <para>Pipeline used: https://www.ebi.ac.uk/metagenomics/pipelines/${pipeline}</para>
+     </description>
+   </methodStep>
  <sampling>
 
    <samplingDescription>
      <para>
      ${_.escape(study["study-abstract"])}
      </para>
-     <para>Pipeline used: https://www.ebi.ac.uk/metagenomics/pipelines/${pipeline}</para>
    </samplingDescription>
  </sampling>
  
