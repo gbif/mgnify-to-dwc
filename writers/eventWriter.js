@@ -27,7 +27,8 @@ const getEventWriter = function(studyId) {
       "decimalLongitude",
       "dynamicProperties",
       "sampleSizeValue",
-      "sampleSizeUnit"
+      "sampleSizeUnit",
+      "materialSampleID"
     ],
     sendHeaders: false
   });
@@ -85,7 +86,8 @@ const writeSampleEvent = (data, analysis, eventWriter) => {
         .reduce((val, o) => ({ ...val, [o.key]: o.value }), {})
     ),
     _.get(sampleSizeValue, "value") || "",
-    "DNA sequence reads"
+    "DNA sequence reads",
+    _.get(data, 'id') ? `https://www.ebi.ac.uk/metagenomics/samples/${_.get(data, 'id')}` : ""
 	];
 	const cleanLine = line.map(x => cleanValue(x))
   eventWriter.write(cleanLine);

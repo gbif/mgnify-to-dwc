@@ -150,14 +150,14 @@ async function iterateSamples(studyId, pipelineVersion) {
 
   let next = _.get(studyBody, "data.relationships.analyses.links.related");
 
-  status.update({ analysisCount: _.get(studyBody, "meta.count") });
   let analysisIndex = 0;
   let studyCount = 0;
 
   // extract unique samples and their corresponding analyses. Do it in memory. Nothing seems to be too large for now.
   while (next) {
     let analysesResultPage = await getData(next);
-   
+    status.update({ sampleCount: _.get(analysesResultPage, "meta.pagination.count") });
+
     for (const analysis of analysesResultPage.data) {
        // console.log(JSON.stringify(analysis))
       if (_.get(analysis, "attributes.pipeline-version") === pipelineVersion) {
@@ -166,7 +166,7 @@ async function iterateSamples(studyId, pipelineVersion) {
         await saveSampleEvent(eventWriter, sampleID, analysis, duplicates[sampleID])
         console.log('done')
         analysisIndex ++;
-        status.update({ analysisIndex: analysisIndex, activeAnalysis: analysis.id, activeSample: sampleID });
+        status.update({ sampleIndex: analysisIndex, activeSample: analysis.id });
         let taxa = {}; // has format taxaID: {occ, basedOn: [{analysesID, subUnit}], primary: {analysesID, subUnit}}
     
         // iterate over occurrences for that analyses and add them to the taxa map
