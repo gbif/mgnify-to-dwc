@@ -57,7 +57,7 @@ const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
 
   let remark = 'This occurrence appeared in following analyses:';
   occurrence.basedOn.forEach(evidence => {
-    remark += ` Subunit ${evidence.subUnit} from analyses https://www.ebi.ac.uk/metagenomics/api/v1/analyses/${evidence.analysesID}.`
+    remark += ` ${evidence.subUnit.toUpperCase()} taxonomy from analyses https://www.ebi.ac.uk/metagenomics/api/v1/analyses/${evidence.analysesID}.`
   });
 
   const row = occurrence.o;
@@ -84,7 +84,7 @@ const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
     "DNA sequence reads",
     "MATERIAL_SAMPLE",
     `https://www.ebi.ac.uk/metagenomics/pipelines/${pipelineVersion}`,
-    `${subUnit} rRNA annotated using the taxonomic reference database described here: https://www.ebi.ac.uk/metagenomics/pipelines/${pipelineVersion}. ${remark}`
+    `${subUnit.toUpperCase()} rRNA annotated using the taxonomic reference database described here: https://www.ebi.ac.uk/metagenomics/pipelines/${pipelineVersion}. ${remark}`
   ];
   occurrenceWriter.write(line);
 };
