@@ -1,6 +1,6 @@
 module.exports = {
     uat: {
-      publishingOrganizationKey: "480dd716-14dc-4807-a912-d0f4ac28623d",
+      publishingOrganizationKey: "3103c895-eaa0-443a-aaf7-7e7b30459591",
       installationKey: "41e5ac50-ae41-4c9d-b6c6-1259b5cd9898",
       baseUrl: "http://api.gbif-uat.org/v1/",
       hostUrl: "http://labs.gbif.org/mgnify/",
