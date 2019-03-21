@@ -20,7 +20,7 @@ const isRegisteredInGBIF = async (studyId, env) => {
       `Study id ${studyId} is registered ${registeredAndNotDeletedDatasets.length} times in GBIF`
     );
   }
-  return registeredAndNotDeletedDatasets.length === 1;
+  return  registeredAndNotDeletedDatasets[0]; // registeredAndNotDeletedDatasets.length === 1;
 };
 const addIdentifier = async (studyId, uuid, username, password, env) => {
   const auth =
@@ -112,7 +112,8 @@ const registerStudies = async (environment, username, password) => {
       const studyId = s.split(".")[0];
       isRegisteredInGBIF(studyId, env).then(registered => {
         if (registered) {
-          console.log(`Study ${studyId} is already registered`);
+          console.log(`Study ${studyId} is already registered, triggering crawl`);
+          crawlDataset(registered.key, username, password, env)
         } else if (!registered) {
           registerStudy(studyId, username, password, env)
             .then(response => {
