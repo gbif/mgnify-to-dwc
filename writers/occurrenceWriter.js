@@ -57,9 +57,8 @@ const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
 
   let remark = 'This occurrence appeared in following analyses:';
   occurrence.basedOn.forEach(evidence => {
-    remark += ` ${evidence.subUnit.toUpperCase()} taxonomy from analyses https://www.ebi.ac.uk/metagenomics/api/v1/analyses/${evidence.analysesID}.`
+    remark += ` ${evidence.subUnit.toUpperCase()} taxonomy from analyses https://www.ebi.ac.uk/metagenomics/analyses/${evidence.analysesID}#taxonomic.`
   });
-
   const row = occurrence.o;
   let kingdom = _.get(row, "attributes.hierarchy.kingdom");
   let superKingdom = _.get(row, "attributes.hierarchy.super kingdom");
