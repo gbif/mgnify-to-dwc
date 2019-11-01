@@ -16,6 +16,7 @@
     <field index="10" term="http://rs.tdwg.org/dwc/terms/sampleSizeValue"/>
     <field index="11" term="http://rs.tdwg.org/dwc/terms/sampleSizeUnit"/>
     <field index="12" term="http://rs.tdwg.org/dwc/terms/materialSampleID"/>
+    <field index="13" term="http://rs.tdwg.org/dwc/terms/country"/>
   </core>
   <extension encoding="UTF-8" fieldsTerminatedBy="," linesTerminatedBy="\n" fieldsEnclosedBy='"' ignoreHeaderLines="0" rowType="http://rs.tdwg.org/dwc/terms/Occurrence">
     <files>

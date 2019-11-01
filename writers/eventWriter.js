@@ -28,7 +28,8 @@ const getEventWriter = function(studyId) {
       "dynamicProperties",
       "sampleSizeValue",
       "sampleSizeUnit",
-      "materialSampleID"
+      "materialSampleID",
+      "country"
     ],
     sendHeaders: false
   });
@@ -49,7 +50,17 @@ const getEventWriter = function(studyId) {
 
 const writeSampleEvent = (data, analysis, eventWriter) => {
 	const sampleMetadata = _.get(data, "attributes.sample-metadata") || [];
-	const sampleSizeValue = _.get(analysis, "attributes.analysis-summary").find(e => e.key === "Nucleotide sequences with predicted RNA")	
+  const sampleSizeValue = _.get(analysis, "attributes.analysis-summary").find(e => e.key === "Nucleotide sequences with predicted RNA")	
+  
+  const geograficLocation = _.get(
+    sampleMetadata.find(
+      ({ key }) => key === "geographic location (country and/or sea,region)"
+    ),
+    "value"
+  ) || "";
+  console.log(geograficLocation)
+  const splittedGeograficLocation = geograficLocation ? geograficLocation.split(':') : undefined;
+
   const line = [
     _.get(analysis, "id") || "",
     _.get(
@@ -57,7 +68,7 @@ const writeSampleEvent = (data, analysis, eventWriter) => {
       "value"
     ) || "",
     _.get(data, "attributes.sample-desc") || "",
-    _.get(sampleMetadata.find(({ key }) => key === "marine region"), "value") ||
+    _.get(sampleMetadata.find(({ key }) => key === "marine region"), "value") || _.get(splittedGeograficLocation, '[1]') ||
       "",
     _.get(data, "attributes.collection-date") || "",
     _.get(
@@ -87,7 +98,8 @@ const writeSampleEvent = (data, analysis, eventWriter) => {
     ),
     _.get(sampleSizeValue, "value") || "",
     "DNA sequence reads",
-    _.get(data, 'id') ? `https://www.ebi.ac.uk/metagenomics/samples/${_.get(data, 'id')}` : ""
+    _.get(data, 'id') ? `https://www.ebi.ac.uk/metagenomics/samples/${_.get(data, 'id')}` : "",
+    _.get(splittedGeograficLocation, "[0]") || ""
 	];
 	const cleanLine = line.map(x => cleanValue(x))
   eventWriter.write(cleanLine);
