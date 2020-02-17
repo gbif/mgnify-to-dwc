@@ -50,6 +50,20 @@ const getOccurrenceWriter = function(studyId) {
   };
 };
 
+const inScope = (row) => {
+  const kingdom = _.get(row, "attributes.hierarchy.kingdom");
+  const phylum = _.get(row, "attributes.hierarchy.phylum");
+
+  if(kingdom === 'Metazoa'){
+    return false;
+  } else if(kingdom === 'Viridiplantae' && phylum !== 'Chlorophyta'){
+    return false;
+  } else {
+    return true;
+  }
+
+}
+
 const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
   eventID = meta.eventID;
   subUnit = occurrence.primary.subUnit;
@@ -62,7 +76,7 @@ const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
   const row = occurrence.o;
   let kingdom = _.get(row, "attributes.hierarchy.kingdom");
   let superKingdom = _.get(row, "attributes.hierarchy.super kingdom");
-  if(kingdom !== 'Metazoa' && kingdom !== 'Viridiplantae'){
+  if(inScope(row)){
   if (!kingdom && superKingdom === "Bacteria") {
     kingdom = superKingdom;
   }
