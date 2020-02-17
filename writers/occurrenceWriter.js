@@ -62,6 +62,7 @@ const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
   const row = occurrence.o;
   let kingdom = _.get(row, "attributes.hierarchy.kingdom");
   let superKingdom = _.get(row, "attributes.hierarchy.super kingdom");
+  if(kingdom !== 'Metazoa' && kingdom !== 'Viridiplantae'){
   if (!kingdom && superKingdom === "Bacteria") {
     kingdom = superKingdom;
   }
@@ -86,6 +87,7 @@ const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
     `${subUnit.toUpperCase()} rRNA annotated using the taxonomic reference database described here: https://www.ebi.ac.uk/metagenomics/pipelines/${pipelineVersion}. ${remark}`
   ];
   occurrenceWriter.write(line);
+  }
 };
 
 module.exports = {
