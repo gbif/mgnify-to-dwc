@@ -84,7 +84,7 @@ const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
     eventID,
     eventID,
     `${eventID}_${_.get(row, "id")}`,
-    _.get(row, "attributes.hierarchy.kingdom") || "",
+      kingdom || "",
     _.get(row, "attributes.hierarchy.phylum") || "",
     _.get(row, "attributes.hierarchy.class") || "",
     _.get(row, "attributes.hierarchy.order") || "",
