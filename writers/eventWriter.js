@@ -48,6 +48,19 @@ const getEventWriter = function(studyId) {
   };
 };
 
+const latLonIsNotSuspicious = (data) => {
+  const lat = _.get(data, "attributes.latitude") || "";
+  const lon = _.get(data, "attributes.longitude") || "";
+  let suspicious = false;
+  if(Number(lat) === 1 && Number(lon) === 1){
+    suspicious = true;
+  }
+  if(Number(lat) === 0 && Number(lon) === 0){
+    suspicious = true;
+  }
+  return suspicious;
+}
+
 const writeSampleEvent = (data, analysis, eventWriter) => {
 	const sampleMetadata = _.get(data, "attributes.sample-metadata") || [];
   const sampleSizeValue = _.get(analysis, "attributes.analysis-summary").find(e => e.key === "Nucleotide sequences with predicted RNA")	
@@ -83,8 +96,8 @@ const writeSampleEvent = (data, analysis, eventWriter) => {
       ),
       "value"
     ) || "",
-    _.get(data, "attributes.latitude") || "",
-    _.get(data, "attributes.longitude") || "",
+    latLonIsNotSuspicious(data) ? _.get(data, "attributes.latitude") : "",
+    latLonIsNotSuspicious(data) ? _.get(data, "attributes.longitude") : "",
     JSON.stringify(
       sampleMetadata
         .filter(

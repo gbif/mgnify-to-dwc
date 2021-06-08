@@ -112,8 +112,9 @@ const registerStudies = async (environment, username, password) => {
       const studyId = s.split(".")[0];
       isRegisteredInGBIF(studyId, env).then(registered => {
         if (registered) {
-          console.log(`Study ${studyId} is already registered, triggering crawl`);
-          crawlDataset(registered.key, username, password, env)
+          console.log(`Study ${studyId} is already registered, changes will be picked up on next crawl`);
+          // Do not trigger crawls for 900 datasets simultaneously
+          // crawlDataset(registered.key, username, password, env)
         } else if (!registered) {
           registerStudy(studyId, username, password, env)
             .then(response => {
