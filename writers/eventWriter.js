@@ -48,7 +48,7 @@ const getEventWriter = function(studyId) {
   };
 };
 
-const latLonIsNotSuspicious = (data) => {
+const latLonIsSuspicious = (data) => {
   const lat = _.get(data, "attributes.latitude") || "";
   const lon = _.get(data, "attributes.longitude") || "";
   let suspicious = false;
@@ -96,8 +96,8 @@ const writeSampleEvent = (data, analysis, eventWriter) => {
       ),
       "value"
     ) || "",
-    latLonIsNotSuspicious(data) ? _.get(data, "attributes.latitude") : "",
-    latLonIsNotSuspicious(data) ? _.get(data, "attributes.longitude") : "",
+    latLonIsSuspicious(data) ? "" : _.get(data, "attributes.latitude") ,
+    latLonIsSuspicious(data) ? "" : _.get(data, "attributes.longitude"),
     JSON.stringify(
       sampleMetadata
         .filter(
