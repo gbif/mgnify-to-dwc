@@ -64,6 +64,13 @@ const inScope = (row) => {
 
 }
 
+const evidenceLabels = {
+  "ssu": { name: "SSU rRNA", database: "SSU"},
+  "lsu": { name: "LSU rRNA", database: "LSU"},
+  "itsunite": { name: "Eukaryal Ribosomal ITS", database: "UNITE"},
+  "itsonedb": { name: "Eukaryal Ribosomal ITS", database: "ITSoneDB"}
+}
+
 const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
   eventID = meta.eventID;
   subUnit = occurrence.primary.subUnit;
@@ -71,7 +78,7 @@ const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
 
   let remark = 'This occurrence appeared in following analyses:';
   occurrence.basedOn.forEach(evidence => {
-    remark += ` ${evidence.subUnit.toUpperCase()} taxonomy from analyses https://www.ebi.ac.uk/metagenomics/analyses/${evidence.analysesID}#taxonomic.`
+    remark += ` ${evidenceLabels[evidence.subUnit].database} taxonomy from analyses https://www.ebi.ac.uk/metagenomics/analyses/${evidence.analysesID}#taxonomic.`
   });
   const row = occurrence.o;
   let kingdom = _.get(row, "attributes.hierarchy.kingdom");
@@ -98,7 +105,7 @@ const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
     "DNA sequence reads",
     "MATERIAL_SAMPLE",
     `https://www.ebi.ac.uk/metagenomics/pipelines/${pipelineVersion}`,
-    `${subUnit.toUpperCase()} rRNA annotated using the taxonomic reference database described here: https://www.ebi.ac.uk/metagenomics/pipelines/${pipelineVersion}. ${remark}`
+    `${evidenceLabels[subUnit].name} annotated using the taxonomic reference database described here: https://www.ebi.ac.uk/metagenomics/pipelines/${pipelineVersion}. ${remark}`
   ];
   occurrenceWriter.write(line);
   }

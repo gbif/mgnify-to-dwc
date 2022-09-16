@@ -172,18 +172,21 @@ async function iterateSamples(studyId, pipelineVersion) {
         // iterate over occurrences for that analyses and add them to the taxa map
         const occurrenceData = await getOccurrencesFromAnalyses(analysis)
 
-        
-          occurrenceData.ssu.forEach(occ => {
-            const basis = { analysesID: occurrenceData.analysesID, subUnit: "ssu" };
+        const regions = Object.keys(occurrenceData.taxonomy);
+        regions.forEach(region => {
+          occurrenceData.taxonomy[region].forEach(occ => {
+            const basis = { analysesID: occurrenceData.analysesID, subUnit: region };
             taxa[occ.id] = taxa[occ.id] ? taxa[occ.id] : { o: occ, basedOn: [] };
             taxa[occ.id].basedOn.push(basis); // add support claim
             // if larger or equal count, then set as primary evidence
             const count = _.get(occ, "attributes.count", 0);
-            if (count >= _.get(taxa[occ.id], "attributes.count", 0)) {
+            if (count >= _.get(taxa[occ.id], "o.attributes.count", 0)) {
               taxa[occ.id].primary = basis;
+              taxa[occ.id].o = occ;
             }
           });
-      
+        })
+          
         // save the distinct taxa as occurrences for the event
         studyCount += Object.keys(taxa).length;
         totalCount += Object.keys(taxa).length;
@@ -220,9 +223,21 @@ const saveSampleEvent = async (eventWriter, sampleId, analysis, studyList) => {
 async function getOccurrencesFromAnalyses(analyses) {
   let lsu = _.get(analyses, "relationships.taxonomy-lsu.links.related");
   let ssu = _.get(analyses, "relationships.taxonomy-ssu.links.related");
+  let itsunite = _.get(analyses, "relationships.taxonomy-itsunite.links.related");
+  let itsonedb = _.get(analyses, "relationships.taxonomy-itsonedb.links.related");
   let lsuOccurrences = await getOccurrences(lsu);
   let ssuOccurrences = await getOccurrences(ssu);
-  return { analysesID: analyses.id, lsu: lsuOccurrences, ssu: ssuOccurrences };
+  let result = { analysesID: analyses.id, taxonomy: {lsu: lsuOccurrences, ssu: ssuOccurrences}};
+  // itsunite itsonedb only exists in pipeline v5
+  if(itsunite){
+    let itsuniteOccurrences = await getOccurrences(itsunite);
+    result.taxonomy.itsunite = itsuniteOccurrences;
+  }
+  if(itsonedb){
+    let itsonedbOccurrences = await getOccurrences(itsonedb);
+    result.taxonomy.itsonedb = itsonedbOccurrences;
+  } 
+  return result;
 }
 
 async function getOccurrences(url) {
@@ -318,6 +333,7 @@ async function run(pipelineVersion, study) {
     try {
       await iterateSamples(studyID, pipelineVersion);
     } catch (err) {
+      console.log(err)
       // Add a post
       failedCount++;
       status.update({ failedCount });
