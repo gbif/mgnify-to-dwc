@@ -37,7 +37,7 @@ const getEventWriter = function(studyId) {
   let writeStream = fs.createWriteStream(`./${settings.folder}/${studyId}/event.txt`);
   eventWriter.pipe(writeStream);
   return {
-    write: (eventData, analysis) => writeSampleEvent(eventData, analysis, eventWriter),
+    write: (eventData, analysis) => writeSampleEvent(eventData, analysis, eventWriter, studyId),
     end: () => {
       return new Promise((resolve, reject) => {
         eventWriter.end();
@@ -62,7 +62,7 @@ const latLonIsSuspicious = (data) => {
   return suspicious;
 }
 
-const writeSampleEvent = (data, analysis, eventWriter) => {
+const writeSampleEvent = (data, analysis, eventWriter, studyId) => {
 	const sampleMetadata = _.get(data, "attributes.sample-metadata") || [];
   const sampleSizeValue = _.get(analysis, "attributes.analysis-summary").find(e => e.key === "Nucleotide sequences with predicted RNA")	|| _.get(analysis, "attributes.analysis-summary").find(e => e.key === "Nucleotide sequences after undetermined bases filtering");
   
@@ -76,6 +76,8 @@ const writeSampleEvent = (data, analysis, eventWriter) => {
   const splittedGeograficLocation = geograficLocation ? geograficLocation.split(':') : undefined;
   const firstLevelGeograficLocation = _.get(splittedGeograficLocation, '[0]', '');
   const isWaterBody = ['sea', 'ocean'].includes(_.get(firstLevelGeograficLocation.toLowerCase().split(' '), '[1]'));
+  const lat = _.get(data, "attributes.latitude");
+  const lon = _.get(data, "attributes.longitude");
   const line = [
     _.get(analysis, "id") || "",
     _.get(
@@ -98,8 +100,8 @@ const writeSampleEvent = (data, analysis, eventWriter) => {
       ),
       "value"
     ) || "",
-    latLonIsSuspicious(data) ? "" : _.get(data, "attributes.latitude") ,
-    latLonIsSuspicious(data) ? "" : _.get(data, "attributes.longitude"),
+    latLonIsSuspicious(data) ? "" : lat ,
+    latLonIsSuspicious(data) ? "" : (studyId === "MGYS00002684" && Math.sign(lon) === 1) ? -lon : lon,
     JSON.stringify(
       sampleMetadata
         .filter(
