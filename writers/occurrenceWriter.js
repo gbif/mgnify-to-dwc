@@ -87,6 +87,9 @@ const writeOccurrence = (occurrence, meta, analysis, occurrenceWriter) => {
   if (!kingdom && superKingdom === "Bacteria") {
     kingdom = superKingdom;
   }
+  if (!kingdom && superKingdom === "Archaea") {
+    kingdom = superKingdom;
+  }
   const line = [
     eventID,
     eventID,
