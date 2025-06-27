@@ -34,6 +34,24 @@ const createEML = (study, pipeline, publications) => {
 <phone>${institution.phone}</phone>
 </metadataProvider>
 
+<creator>
+    <organizationName>EMBL-EBI</organizationName>
+    <address>
+        <city>Hinxton</city>
+        <country>GB</country>
+    </address>
+    <onlineUrl>https://www.ebi.ac.uk/</onlineUrl>
+</creator>
+
+<creator>
+    <organizationName>MGnify</organizationName>
+    <address>
+        <city>Hinxton</city>
+        <country>GB</country>
+    </address>
+    <onlineUrl>https://www.ebi.ac.uk/metagenomics</onlineUrl>
+</creator>
+
 <pubDate>
  ${study["last-update"]}
 </pubDate>
